@@ -1,5 +1,7 @@
 # DFT-and-Filtering-of-WAV-file
 
+NOTE: ALWAYS BE CAREFUL NOT TO DAMAGE YOUR HEARING WHEN LISTENING TO THE OUTPUT WAV FILES. CHANGES YOU MAKE TO THIS PROGRAM COULD PRODUCE A VERY LOUD WAV FILE. TURN YOUR VOLUME DOWN AND DON'T PUT EARPHONES DIRECTLY OVER/INTO YOUR EARS UNTIL YOU HAVE TESTED THAT IT IS SAFE FIRST.
+
 This program analyses and filters signals taken in from wav files or csv files.
 
 It is currently set up for wav files but can be changed to csv input by modifying the code under the section 
@@ -10,7 +12,9 @@ The filtering requires hard coding of filter coefficients into the file. It is c
 The program will output a wav file with the filtered signal named output.wav.
 The input in this program is a Piano C6 note in the PianoC.wav file (source:http://freewavesamples.com/alesis-fusion-bright-acoustic-piano-c6)
 This must be in the same directory as the executable file (or c file if you are compiling and running).
-You can change the input wav file in the takeInFrom16BitWav(float* signal, const int sigSize); function.
+You can change the input wav file in the takeInFrom16BitWav(); function.
+You can change the name of the output wav file in sendOutTo16BitWav(); function.
+In this version if you look at the frequency spectrum of the input (column D see below) PianoC6 signal you will clearly see the fundamental frequency of C6 and it harmonics at integer mutliples of the fundamental frequency. Because of the lowpass filter used the fundamental and second harmonic are passed with almost no alteration, the third harmonic is significantly attenuated and the all other harmonics are almost entirely removed. You can see this in the output signal spectrum (magnitude column I see below) but you can also hear it clearly if you listen to the outputWav.wav file compared to the PianoC6.wav file.
 
 The program will also output an analysis csv file called outputAnalysis.csv.
 You can open this in most spreadsheet programs such as Microsoft Excel and then graph the data.

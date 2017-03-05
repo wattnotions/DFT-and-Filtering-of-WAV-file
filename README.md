@@ -5,7 +5,7 @@ This program analyses and filters signals taken in from wav files or csv files.
 It is currently set up for wav files but can be changed to csv input by modifying the code under the section 
 /***********Take in the input signal**************************************/ in the filteringAnalysis.c file.
 
-The filtering requires hard coding of filter coefficients into the file. It is currently set up as an IIR Low pass Chebyshev filter with a cutoff frequency of 0.1 of the sampling frequency.
+The filtering requires hard coding of filter coefficients into the file. It is currently set up as an IIR Low pass Chebyshev filter with a cutoff frequency of 0.1 of the sampling frequency. You can calculate your own coefficients if you wish to or take a look at http://www.dspguide.com/ch20/2.htm for some example values. Take care that if you change the number of coefficients used then you must change the NUMCOEFF value to the appropriate number.
 
 The program will output a wav file with the filtered signal named output.wav.
 The input in this program is a Piano C6 note in the PianoC.wav file (source:http://freewavesamples.com/alesis-fusion-bright-acoustic-piano-c6)

@@ -284,7 +284,7 @@ void takeInFrom16BitWav(float* signal, const int sigSize){
            
 	}
 	fclose(inFile);
-	fclose(outFile);
+	//fclose(outFile);
 }
 
 

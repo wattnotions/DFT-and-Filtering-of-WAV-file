@@ -94,6 +94,8 @@ int main(void) {
 	* a cutoff of 0.1 of the sampling Frequency 
 	* see http://www.dspguide.com/ch20/2.htm for lists of filter coefficients*/
 	
+	
+	// filter coefficients for 0.2 of sample rate (44.1*0.2) = 8.82Khz
 	float aCoeff[NUMCOEFF] = {8.618665E-4, 
 								5.171199E-3, 
 								1.292800E-2, 

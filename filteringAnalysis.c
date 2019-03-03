@@ -237,6 +237,21 @@ void interpolate(float *signal, float *modSignalOut, const int oldSigSize, const
 	
 }
 
+/******************************************************************************
+*
+* Function Name: decimate
+*
+* Input Parameters: pointer to the array containing the input signal, an int containing the size of the array, and an int for how much to decimate by
+* Note : This decimate numnber is the actual number you have calculated, the function takes care of the whole (M-1) craic							
+*
+* Output Parameters: float* signal is where the signal from the csv and wave file will 
+*							be stored for later use
+*
+* Returns: void
+*
+* Purpose of Function: take in an array, interpolate it be a set number, and return a pointer to a new array of interpolated data
+*
+******************************************************************************/
 void decimate(float *signal, float *signalOut, const int oldSigSize, const int newSigSize){
 	int i,h=0;
 	

@@ -78,12 +78,12 @@ int main(void) {
 	float sigInFreqMag[SIGSEGSIZE]={0};
 	float sigInFreqPha[SIGSEGSIZE]={0};
 	
-	float *interpolateSignalOut = malloc(INTER_ARRAY_SIZE * sizeof(float));
-	float *decimateSignalOut    = malloc(DECI_ARRAY_SIZE  * sizeof(float));
+	float *interpolateSignalOut = malloc(INTER_ARRAY_SIZE * sizeof(float)); /*allocate memory for interpolated signal*/
+	float *decimateSignalOut    = malloc(DECI_ARRAY_SIZE  * sizeof(float)); /*allocate memory for decimated signal*/
 	
 	
-	float *filterSignalOut = malloc(INTER_ARRAY_SIZE * sizeof(float));
-	//float signalOut[SIGSIZE] = {0};
+	float *filterSignalOut = malloc(INTER_ARRAY_SIZE * sizeof(float)); /*allocate memry for output from filter*/
+	
 	float sigOutFreqMag[SIGSEGSIZE]={0};
 	float sigOutFreqPha[SIGSEGSIZE]={0};
 		

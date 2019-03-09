@@ -2,20 +2,23 @@
 *
 * File Name: filteringAnalysis.c
 *
-* Description: This program takes a timedomain signal in from a file and 
+* Description: This program takes a timedomain signal in from a file, intepolates by a harcoded amount,
 *				filters the signal via coefficients that are hardcoded
-*				into the program. It will output one file with columns for 
+*				into the program and then decimates the filter output again by a hardcoded amount to provide the required output sample rate. 
+* 
+* 
+* 				It will output one file with columns for 
 *				the input signal, 
 *				the output signal, 
 *				frequency scale, 
 *				frequency spectra for the input and the output signal and 
 *				the frequency response of the filter.
 *
-* Programmer: Sean Mullery
+* Programmer: Sean Mullery, Shane Ormonde
 *
-* Date: 05/May/2017
+* Date: 09/03/19
 *
-* Version: 1.4
+* Version: 0.1
 *				
 *
 ******************************************************************************/
@@ -36,11 +39,12 @@
 						* memory for all the arrays of this size.*/
 #define SIGSEGSIZE 4000 /*The size of the segment to be analysed by the DFT */
 #define DFTSIZE 2001 /*Length of DFT */
-#define NYQUIST 22050.0 /*Nyquist Frequency in Hz, must be floating point*/
-#define INTERPOLATE_AMOUNT 160
-#define DECIMATE_AMOUNT    441
-#define INTER_ARRAY_SIZE SIGSIZE*INTERPOLATE_AMOUNT
-#define DECI_ARRAY_SIZE  INTER_ARRAY_SIZE/DECIMATE_AMOUNT
+#define NYQUIST 22050.0 /* Input file Nyquist Frequency in Hz, must be floating point*/
+#define OUTPUT_NYQUIST 8000.00 /*output file nyquist frequency in Hz, must be floating point*/
+#define INTERPOLATE_AMOUNT 160 /*interpolation factor*/
+#define DECIMATE_AMOUNT    441 /*decimation factor*/
+#define INTER_ARRAY_SIZE SIGSIZE*INTERPOLATE_AMOUNT /*array length required to store interpolated signal*/
+#define DECI_ARRAY_SIZE  INTER_ARRAY_SIZE/DECIMATE_AMOUNT /*array length required to store decimated signal*/
 
 #define TRUE 1
 #define FALSE 0
@@ -52,13 +56,13 @@ void dft(const float* signal, float* mag, float* pha, const int sigSize);
 void filter(const float* sigIn, float* sigOut, const float* aCoeff, 
 									const float* bCoeff, const int sigSize); 
 									
-void interpolate(float *signal, float *modSignalOut , const int oldSigSize, const int newSigSize);
+void interpolate(float *signal, float *interSignalOut , const int oldSigSize);
 
-void decimate(float *signal, float *signalOut, const int oldSigSize, const int newSigSize);
+void decimate(float *signal, float *deciSignalOut, const int newSigSize);
 
 void takeInFrom16BitWav(float* signal, const int sigSize);
 
-void sendOutTo16BitWav(float* signal, const int sigSize, const float new_nyquist);
+void sendOutTo16BitWav(float* signal, const int sigSize);
 
 void takeInFromCsv(float* signal, const int sigSize);
 
@@ -78,7 +82,7 @@ int main(void) {
 	float *decimateSignalOut    = malloc(DECI_ARRAY_SIZE  * sizeof(float));
 	
 	
-	float *signalOut = malloc(INTER_ARRAY_SIZE * sizeof(float));
+	float *filterSignalOut = malloc(INTER_ARRAY_SIZE * sizeof(float));
 	//float signalOut[SIGSIZE] = {0};
 	float sigOutFreqMag[SIGSEGSIZE]={0};
 	float sigOutFreqPha[SIGSEGSIZE]={0};
@@ -95,21 +99,9 @@ int main(void) {
 	* see http://www.dspguide.com/ch20/2.htm for lists of filter coefficients*/
 	
 	
-	// filter coefficients for 0.2 of sample rate (44.1*0.2) = 8.82Khz
-	float aCoeff[NUMCOEFF] = {8.618665E-4, 
-								5.171199E-3, 
-								1.292800E-2, 
-								1.723733E-2, 
-								1.292800E-2, 
-								5.171199E-3, 
-								8.618665E-4};
-	float bCoeff[NUMCOEFF] = {0, /*This is a placeholder for the b0 coefficient*/
-								 3.455239, 
-								-5.754735, 
-								 5.645387, 
-								-3.394902, 
-								 1.177469, 
-								-1.826195E-1};
+	// filter coefficients for 0.00099206 of sample rate (44.1*0.00099206) = 7Khz
+	float aCoeff[NUMCOEFF] = {1.8344e-18 ,  1.1006e-17  , 2.7516e-17  , 3.6688e-17 ,  2.7516e-17  , 1.1006e-17  , 1.8344e-18};
+	float bCoeff[NUMCOEFF] = {  -5.99564 ,  14.97823 , -19.95650  , 14.95655 ,  -5.97830  ,  0.99566};
 	
 	int i;	
 	
@@ -134,21 +126,18 @@ int main(void) {
 	filter(impulse,impulseResp,aCoeff,bCoeff,SIGSEGSIZE);
 	
 	/**take the input signal and interpolate it by the defined amount**/
-	interpolate(signalIn,interpolateSignalOut,SIGSIZE, INTER_ARRAY_SIZE);
+	interpolate(signalIn,interpolateSignalOut,SIGSIZE);
 	
 	
 	/*****Filter the input signal signalIn and put the filtered version in 
 		the output signal signalOut********************************************/
-	filter(interpolateSignalOut,signalOut,aCoeff,bCoeff,INTER_ARRAY_SIZE);
-	
+	filter(interpolateSignalOut,filterSignalOut,aCoeff,bCoeff,INTER_ARRAY_SIZE);
 	
 	
 	/****decimate the output from the filter *****/
 	
-	decimate(signalOut, decimateSignalOut, INTER_ARRAY_SIZE, DECI_ARRAY_SIZE);
-	/*for (i=0; i<500; i++){
-		printf("%f\n", decimateSignalOut[i]);
-	}*/
+	decimate(filterSignalOut, decimateSignalOut, DECI_ARRAY_SIZE);
+	
 	
 	/*****Get the Frequency Response of the filter****************************/
 	dft(impulseResp, freqRespMag, freqRespPha, SIGSEGSIZE);
@@ -185,7 +174,9 @@ int main(void) {
 		fprintf(outFile,"\n");
 	}
 	
-	sendOutTo16BitWav(decimateSignalOut, DECI_ARRAY_SIZE, 8000);
+	
+	
+	sendOutTo16BitWav(decimateSignalOut, DECI_ARRAY_SIZE);
 
 	/***********************Clean up and close files*****************************/
 
@@ -202,11 +193,11 @@ int main(void) {
 *
 * Function Name: interpolate
 *
-* Input Parameters: pointer to the array containing the input signal, an int containing the size of the array, and an it for how much to interpolate by
-* Note : This interpolate numnber is the actual number you have calculated, the function takes care of the whole (M-1) craic							
+* Input Parameters: pointer input signal array, pointer to output signal array an int containing the size of the input array
+* 							
 *
-* Output Parameters: float* signal is where the signal from the csv file will 
-*							be stored for later use
+* Output Parameters: float* interSignalOut is the output
+*							
 *
 * Returns: void
 *
@@ -214,19 +205,19 @@ int main(void) {
 *
 ******************************************************************************/
 
-void interpolate(float *signal, float *modSignalOut, const int oldSigSize, const int newSigSize) {
+void interpolate(float *signal, float *interSignalOut, const int oldSigSize) {
 	
 	int i;
 	int h;
 	int x;
 	
 	
-	for (i=0; i<oldSigSize; i++) {
-		modSignalOut[h] = signal[i];
-		for (x=1; x<=INTERPOLATE_AMOUNT; x++){
-			modSignalOut[h+x] = 0;
+	for (i=0; i<oldSigSize; i++) {                 /*iterate through each element of input array*/
+		interSignalOut[h] = signal[i];             /*copy input array element to output array*/
+		for (x=1; x<=INTERPOLATE_AMOUNT; x++){     /*fill interSignalOut with amount of zeroes specified by (INTERPOLATE_AMOUNT)*/
+			interSignalOut[h+x] = 0;			   
 		}
-		h = h + (INTERPOLATE_AMOUNT-1);
+		h = h + (INTERPOLATE_AMOUNT-1);            /*now that zeros have been added , update h to point to latest element after newest zeroes*/
 			
 	   
 	}
@@ -241,23 +232,22 @@ void interpolate(float *signal, float *modSignalOut, const int oldSigSize, const
 *
 * Function Name: decimate
 *
-* Input Parameters: pointer to the array containing the input signal, an int containing the size of the array, and an int for how much to decimate by
-* Note : This decimate numnber is the actual number you have calculated, the function takes care of the whole (M-1) craic							
+* Input Parameters: pointer input signal array, pointer to output signal array an int containing the size of the input array
+* 						
 *
-* Output Parameters: float* signal is where the signal from the csv and wave file will 
-*							be stored for later use
+* Output Parameters: float* deciSignalOut is the output
 *
 * Returns: void
 *
-* Purpose of Function: take in an array, interpolate it be a set number, and return a pointer to a new array of interpolated data
+* Purpose of Function: take in an array, decimate it by a set number, and return a pointer to a new array of decimated data
 *
 ******************************************************************************/
-void decimate(float *signal, float *signalOut, const int oldSigSize, const int newSigSize){
+void decimate(float *signal, float *deciSignalOut, const int newSigSize){
 	int i,h=0;
 	
-	for (i=0; i<newSigSize; i++) {
-		signalOut[i] = signal[h];
-		h = h + (DECIMATE_AMOUNT-1);
+	for (i=0; i<newSigSize; i++) {         /*iterate through each element of input array*/
+		deciSignalOut[i] = signal[h];      /*copy input signal element to deciSignalOut array*/
+		h = h + (DECIMATE_AMOUNT-1);       /*skip ahead by DECIMATE_AMOUNT-1 to perfrom decimation action*/
 	}
 	
 	
@@ -406,7 +396,7 @@ void takeInFrom16BitWav(float* signal, const int sigSize){
 *						numbers for output to WAV file  
 *
 ******************************************************************************/
-void sendOutTo16BitWav(float* signal, const int sigSize, const float new_nyquist){
+void sendOutTo16BitWav(float* signal, const int sigSize){
 	unsigned int buffer4;
 	unsigned short int buffer2; 
 	
@@ -435,8 +425,8 @@ void sendOutTo16BitWav(float* signal, const int sigSize, const float new_nyquist
 	header.lengthOfFmt = 16;
 	header.formatType = 1;
 	header.channels = 2;
-	header.sampleRate = new_nyquist*2;
-	header.byterate = new_nyquist*2*4;
+	header.sampleRate = OUTPUT_NYQUIST*2;
+	header.byterate = OUTPUT_NYQUIST*2*4;
 	header.blockAlign = 4;
 	header.bitsPerSample = 16;
 	strcpy(header.dataChunkHeader,"data");
